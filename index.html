@@ -2,366 +2,302 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Complex Plane Euler Clock</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>3b1b-ish Euler Clock on ℂ</title>
   <style>
-    :root{
-      --bg1: #0b0f17;
-      --bg2: #0a1222;
-      --card: rgba(255,255,255,.08);
-      --stroke: rgba(255,255,255,.22);
-      --stroke2: rgba(255,255,255,.12);
-      --text: rgba(255,255,255,.86);
-      --sub: rgba(255,255,255,.55);
-      --accent: rgba(255,255,255,.9);
-      --shadow: rgba(0,0,0,.35);
-    }
-    @media (prefers-color-scheme: light){
-      :root{
-        --bg1: #f6f8ff;
-        --bg2: #eef3ff;
-        --card: rgba(0,0,0,.05);
-        --stroke: rgba(0,0,0,.18);
-        --stroke2: rgba(0,0,0,.10);
-        --text: rgba(0,0,0,.82);
-        --sub: rgba(0,0,0,.52);
-        --accent: rgba(0,0,0,.86);
-        --shadow: rgba(0,0,0,.12);
-      }
-    }
-
-    html, body { height: 100%; }
+    html, body { height:100%; margin:0; }
     body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "SF Pro Text", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(1200px 800px at 20% 10%, rgba(255,255,255,.08), transparent 55%),
-        radial-gradient(900px 700px at 80% 20%, rgba(255,255,255,.07), transparent 55%),
-        linear-gradient(160deg, var(--bg1), var(--bg2));
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding: 28px;
-    }
-
-    .wrap{
-      width:min(760px, 96vw);
       display:grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
+      place-items:center;
+      background:#0b0f14;
+      font-family: system-ui, -apple-system, "SF Pro Display","SF Pro Text","Apple SD Gothic Neo","Noto Sans KR", sans-serif;
+      color: rgba(255,255,255,.85);
     }
-
-    .card{
-      background: var(--card);
-      border: 1px solid var(--stroke2);
-      border-radius: 26px;
-      box-shadow: 0 20px 60px var(--shadow);
-      backdrop-filter: blur(16px) saturate(140%);
-      -webkit-backdrop-filter: blur(16px) saturate(140%);
-      overflow:hidden;
-    }
-
-    header{
-      padding: 18px 20px 0 20px;
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
+    .wrap{
+      width:min(860px, 96vw);
+      display:grid;
       gap:12px;
     }
-    header .title{
-      font-weight: 650;
-      letter-spacing: -0.02em;
-      font-size: 18px;
+    .top{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-end;
+      gap:12px;
     }
-    header .hint{
-      font-size: 12px;
-      color: var(--sub);
-      line-height: 1.35;
+    .title{
+      font-weight:700;
+      letter-spacing:-0.02em;
+      font-size:18px;
+    }
+    .sub{
+      font-size:12px;
+      opacity:.65;
+      line-height:1.3;
       text-align:right;
-      white-space: nowrap;
+      white-space:nowrap;
     }
-
-    .stage{
-      padding: 14px 14px 16px 14px;
-    }
-
     canvas{
-      width: 100%;
+      width:100%;
       aspect-ratio: 1 / 1;
       display:block;
-      border-radius: 22px;
-      background:
-        radial-gradient(closest-side at 50% 50%, rgba(255,255,255,.08), transparent 58%),
-        radial-gradient(closest-side at 50% 50%, rgba(255,255,255,.04), transparent 72%);
-      border: 1px solid var(--stroke2);
+      border-radius:18px;
+      background:#0b0f14;
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 20px 70px rgba(0,0,0,.45);
     }
-
-    .footer{
-      padding: 14px 18px 18px 18px;
+    .bar{
       display:flex;
-      gap: 12px;
+      gap:14px;
       align-items:center;
       justify-content:space-between;
-      border-top: 1px solid var(--stroke2);
+      font-size:12px;
+      opacity:.75;
     }
-
     .pill{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--stroke2);
+      padding:10px 12px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:14px;
       background: rgba(255,255,255,.04);
-      color: var(--sub);
-      font-size: 12px;
-      line-height: 1;
-      user-select:none;
     }
-
     .toggle{
       display:flex; align-items:center; gap:10px;
-      color: var(--sub);
-      font-size: 12px;
       user-select:none;
     }
     .toggle input{
       appearance:none;
-      width: 44px;
-      height: 26px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.14);
-      border: 1px solid var(--stroke2);
-      position: relative;
-      outline:none;
+      width:44px; height:26px;
+      border-radius:999px;
+      background: rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.12);
+      position:relative;
       cursor:pointer;
-      transition: .2s ease;
-    }
-    @media (prefers-color-scheme: light){
-      .toggle input{ background: rgba(0,0,0,.08); }
+      outline:none;
     }
     .toggle input::after{
       content:"";
-      position:absolute;
-      top: 3px; left: 3px;
-      width: 20px; height: 20px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.90);
-      box-shadow: 0 6px 20px rgba(0,0,0,.20);
-      transition: .2s ease;
+      position:absolute; top:3px; left:3px;
+      width:20px; height:20px;
+      border-radius:999px;
+      background: rgba(255,255,255,.85);
+      transition: .18s ease;
+      box-shadow: 0 8px 18px rgba(0,0,0,.35);
     }
-    @media (prefers-color-scheme: light){
-      .toggle input::after{ background: rgba(0,0,0,.86); }
-    }
-    .toggle input:checked{
-      background: rgba(255,255,255,.22);
-    }
-    .toggle input:checked::after{
-      transform: translateX(18px);
-    }
-
-    .mono{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      color: var(--text);
-      opacity:.85;
-    }
+    .toggle input:checked::after{ transform: translateX(18px); }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <header>
-        <div class="title">Euler Clock · ℂ</div>
-        <div class="hint">시침 끝에 분침이 붙은 형태<br/>복소평면 벡터 합으로 구현</div>
-      </header>
-      <div class="stage">
-        <canvas id="c"></canvas>
-      </div>
-      <div class="footer">
-        <div class="pill">
-          <span>z<sub>h</sub> = r<sub>h</sub>e<sup class="mono">iθh</sup></span>
-          <span>·</span>
-          <span>z<sub>m</sub> = z<sub>h</sub> + r<sub>m</sub>e<sup class="mono">iθm</sup></span>
-        </div>
-        <label class="toggle">
-          <span>Trail</span>
-          <input id="trail" type="checkbox" checked />
-        </label>
-      </div>
+    <div class="top">
+      <div class="title">Complex Clock · 3b1b-ish</div>
+      <div class="sub">복소평면에서  \(z_h=r_he^{i\theta_h}\),  \(z_m=z_h+r_me^{i\theta_m}\)<br/>“시침 끝에 분침” 링크 구조</div>
+    </div>
+
+    <canvas id="cv"></canvas>
+
+    <div class="bar">
+      <div class="pill mono">θ는 12시를 위로:  θ = 2π·t − π/2</div>
+      <label class="toggle">
+        <span>Trail</span>
+        <input id="trail" type="checkbox" checked />
+      </label>
     </div>
   </div>
 
 <script>
 (() => {
-  const canvas = document.getElementById('c');
-  const ctx = canvas.getContext('2d');
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
 
-  const trailToggle = document.getElementById('trail');
-  let trailOn = trailToggle.checked;
-  trailToggle.addEventListener('change', () => trailOn = trailToggle.checked);
+  const trailEl = document.getElementById('trail');
+  let trailOn = trailEl.checked;
+  trailEl.addEventListener('change', () => (trailOn = trailEl.checked));
 
-  // ====== HiDPI resize ======
-  function resize() {
-    const rect = canvas.getBoundingClientRect();
-    const dpr = Math.max(1, Math.min(2.5, window.devicePixelRatio || 1));
-    canvas.width  = Math.floor(rect.width * dpr);
-    canvas.height = Math.floor(rect.height * dpr);
+  // 3b1b-ish palette (just a vibe, not exact)
+  const COL_BG   = '#0b0f14';
+  const COL_GRID = 'rgba(255,255,255,0.06)';
+  const COL_AXIS = 'rgba(255,255,255,0.18)';
+  const COL_TEXT = 'rgba(255,255,255,0.78)';
+  const COL_SUB  = 'rgba(255,255,255,0.55)';
+  const COL_HOUR = 'rgba(0, 196, 255, 0.92)';   // cyan
+  const COL_MIN  = 'rgba(255, 210, 70, 0.92)';  // warm yellow
+  const COL_JOINT= 'rgba(255,255,255,0.90)';
+  const COL_TRAIL= 'rgba(255,255,255,0.12)';
+
+  // --- Complex helpers (Euler / cis) ---
+  const TAU = Math.PI * 2;
+  const cis = (th) => ({ x: Math.cos(th), y: Math.sin(th) });
+  const mul = (v, s) => ({ x: v.x * s, y: v.y * s });
+  const add = (a, b) => ({ x: a.x + b.x, y: a.y + b.y });
+
+  // --- DPR-safe resize (fix "업데이트 안됨" 류 이슈에 매우 강함) ---
+  let lastW = 0, lastH = 0, lastDpr = 0;
+  function ensureSize(){
+    const rect = cv.getBoundingClientRect();
+    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+
+    const w = Math.round(rect.width * dpr);
+    const h = Math.round(rect.height * dpr);
+
+    if (w !== lastW || h !== lastH || dpr !== lastDpr){
+      cv.width = w;
+      cv.height = h;
+      lastW = w; lastH = h; lastDpr = dpr;
+    }
+
+    // Work in CSS pixels:
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-  window.addEventListener('resize', resize, { passive:true });
-  resize();
 
-  // ====== theme colors from CSS vars ======
-  function cssVar(name){
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return { W: rect.width, H: rect.height, dpr };
   }
 
-  // ====== Complex helpers ======
-  // e^{iθ} = (cosθ, sinθ)
-  function cis(theta){
-    return { x: Math.cos(theta), y: Math.sin(theta) };
+  // world -> screen (complex plane: y up)
+  function toScreen(z, O){
+    return { x: O.x + z.x, y: O.y - z.y };
   }
-  function mulScalar(v, s){ return { x: v.x * s, y: v.y * s }; }
-  function add(a, b){ return { x: a.x + b.x, y: a.y + b.y }; }
 
-  // ====== Drawing helpers ======
+  function clear(W, H){
+    if (trailOn){
+      // fade instead of clear
+      ctx.fillStyle = 'rgba(11,15,20,0.14)'; // matches bg
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = COL_BG;
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
   function line(a, b, w, color){
-    ctx.lineWidth = w;
-    ctx.strokeStyle = color;
-    ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
     ctx.lineTo(b.x, b.y);
+    ctx.lineWidth = w;
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
     ctx.stroke();
   }
 
-  function dot(p, r, fill, stroke=null){
+  function dot(p, r, fill){
     ctx.beginPath();
-    ctx.arc(p.x, p.y, r, 0, Math.PI*2);
+    ctx.arc(p.x, p.y, r, 0, TAU);
     ctx.fillStyle = fill;
     ctx.fill();
-    if(stroke){
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = stroke;
-      ctx.stroke();
+  }
+
+  function text(str, x, y, color=COL_TEXT, size=12, align='left'){
+    ctx.fillStyle = color;
+    ctx.font = `${size}px system-ui, -apple-system, "SF Pro Text", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
+    ctx.textAlign = align;
+    ctx.textBaseline = 'middle';
+    ctx.fillText(str, x, y);
+  }
+
+  // Draw complex plane grid + axes
+  function drawPlane(O, scale, W, H){
+    // grid spacing in pixels
+    const step = scale; // 1 unit
+    ctx.lineWidth = 1;
+
+    // grid
+    ctx.strokeStyle = COL_GRID;
+    ctx.beginPath();
+    for (let x = O.x % step; x <= W; x += step){
+      ctx.moveTo(x, 0); ctx.lineTo(x, H);
     }
-  }
-
-  // world -> screen
-  function toScreen(z, center){
-    // 복소평면: x=Re, y=Im. 화면 y는 아래가 +라서 부호 반전.
-    return { x: center.x + z.x, y: center.y - z.y };
-  }
-
-  // ====== Ticks ======
-  function drawTicks(center, R){
-    const stroke2 = cssVar('--stroke2');
-    const stroke = cssVar('--stroke');
-
-    for(let k=0;k<60;k++){
-      const th = (Math.PI*2) * (k/60) - Math.PI/2;
-      const u = cis(th);
-      const outer = toScreen(mulScalar(u, R), center);
-      const innerLen = (k%5===0) ? 14 : 8;
-      const inner = toScreen(mulScalar(u, R - innerLen), center);
-      line(inner, outer, (k%5===0)?2:1, (k%5===0)?stroke:stroke2);
+    for (let y = O.y % step; y <= H; y += step){
+      ctx.moveTo(0, y); ctx.lineTo(W, y);
     }
+    ctx.stroke();
+
+    // axes
+    ctx.strokeStyle = COL_AXIS;
+    ctx.beginPath();
+    ctx.moveTo(0, O.y); ctx.lineTo(W, O.y); // Re axis
+    ctx.moveTo(O.x, 0); ctx.lineTo(O.x, H); // Im axis
+    ctx.stroke();
+
+    // labels
+    text('Re', W - 18, O.y - 14, COL_SUB, 12, 'right');
+    text('Im', O.x + 18, 18,       COL_SUB, 12, 'left');
+    dot(O, 3, COL_AXIS);
   }
 
-  // ====== Trail buffer ======
+  // --- Trail for minute endpoint ---
   const trail = [];
-  const TRAIL_MAX = 180;
+  const TRAIL_MAX = 220;
 
-  function draw(){
-    const rect = canvas.getBoundingClientRect();
-    const W = rect.width, H = rect.height;
-    const center = { x: W/2, y: H/2 };
+  function frame(){
+    const { W, H } = ensureSize();
+    const O = { x: W/2, y: H/2 };
 
-    const stroke = cssVar('--stroke');
-    const stroke2 = cssVar('--stroke2');
-    const accent = cssVar('--accent');
-    const text = cssVar('--text');
+    // scale: 1 complex unit = pixels
+    const scale = Math.min(W, H) * 0.085;
 
-    // subtle fade instead of full clear (for trail)
-    if(trailOn){
-      ctx.fillStyle = 'rgba(0,0,0,0.10)';
-      // Light mode 대응: 캔버스 배경이 밝으면 잔상이 너무 더러워짐 → 더 연하게
-      const isLight = matchMedia('(prefers-color-scheme: light)').matches;
-      ctx.fillStyle = isLight ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.10)';
-      ctx.fillRect(0,0,W,H);
-    }else{
-      ctx.clearRect(0,0,W,H);
-    }
+    clear(W, H);
+    drawPlane(O, scale, W, H);
 
-    // outer ticks
-    const R = Math.min(W,H)*0.42;
-    drawTicks(center, R);
-
-    // time -> angles
+    // time
     const now = new Date();
     const ms = now.getMilliseconds();
-    const s = now.getSeconds() + ms/1000;
-    const m = now.getMinutes() + s/60;
-    const h = (now.getHours()%12) + m/60;
+    const sec = now.getSeconds() + ms/1000;
+    const min = now.getMinutes() + sec/60;
+    const hour = (now.getHours()%12) + min/60;
 
-    // angles: start at -π/2 (12 o'clock up), clockwise => + increases? (screen y invert already handled)
-    const thetaM = (Math.PI*2) * (m/60) - Math.PI/2;
-    const thetaH = (Math.PI*2) * (h/12) - Math.PI/2;
+    // angles (12시 위가 -π/2)
+    const thM = TAU*(min/60) - Math.PI/2;
+    const thH = TAU*(hour/12) - Math.PI/2;
 
-    // lengths
-    const rH = R*0.55;
-    const rM = R*0.78;
+    // lengths in complex units (then *scale)
+    const rH = 3.2;   // hour length
+    const rM = 4.3;   // minute length
 
-    // complex vectors
-    const zH = mulScalar(cis(thetaH), rH);
-    const zM = add(zH, mulScalar(cis(thetaM), rM));
+    // complex vectors (world coords)
+    const zH = mul(cis(thH), rH * scale);
+    const zM = add(zH, mul(cis(thM), rM * scale));
 
     // screen points
-    const O  = toScreen({x:0,y:0}, center);
-    const PH = toScreen(zH, center);
-    const PM = toScreen(zM, center);
+    const P0 = toScreen({x:0,y:0}, O);
+    const PH = toScreen(zH, O);
+    const PM = toScreen(zM, O);
 
-    // trail points for minute endpoint
+    // trail
     trail.push(PM);
-    if(trail.length > TRAIL_MAX) trail.shift();
+    if (trail.length > TRAIL_MAX) trail.shift();
 
-    // draw trail
-    if(trailOn){
+    if (trailOn){
       ctx.beginPath();
       for(let i=0;i<trail.length;i++){
         const p = trail[i];
-        if(i===0) ctx.moveTo(p.x,p.y);
-        else ctx.lineTo(p.x,p.y);
+        if(i===0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
       }
       ctx.lineWidth = 2;
-      ctx.strokeStyle = stroke2;
+      ctx.strokeStyle = COL_TRAIL;
       ctx.lineCap = 'round';
       ctx.stroke();
     }
 
-    // draw arms (Apple-ish: thick hour, thinner minute)
-    line(O, PH, 8, accent);      // hour arm
-    line(PH, PM, 5, text);       // minute arm attached to hour end
+    // vectors
+    line(P0, PH, 7, COL_HOUR);
+    line(PH, PM, 5, COL_MIN);
 
     // joints
-    dot(O, 7, accent, stroke2);
-    dot(PH, 6, text, stroke2);
-    dot(PM, 5, text, stroke2);
+    dot(P0, 6, COL_JOINT);
+    dot(PH, 5, COL_JOINT);
+    dot(PM, 4, COL_JOINT);
 
-    // subtle outer ring
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, R, 0, Math.PI*2);
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = stroke2;
-    ctx.stroke();
+    // annotations (tiny, 3b1b style)
+    text('zₕ', PH.x + 10, PH.y, COL_HOUR, 12, 'left');
+    text('zₘ', PM.x + 10, PM.y, COL_MIN, 12, 'left');
 
-    requestAnimationFrame(draw);
+    requestAnimationFrame(frame);
   }
 
-  // init clear once
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  requestAnimationFrame(draw);
+  // first paint background (avoids blank flash)
+  ctx.fillStyle = COL_BG;
+  ctx.fillRect(0,0,cv.width,cv.height);
+
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
