@@ -237,9 +237,12 @@
     const M   = now.getMinutes();        // 0..59
     const S   = now.getSeconds();        // 0..59
 
-    const thH = TAU*(H12/12) - Math.PI/2;
-    const thM = TAU*(M/60)   - Math.PI/2;
-    const thS = TAU*(S/60)   - Math.PI/2;
+    //const thH = TAU*(H12/12) - Math.PI/2;
+    //const thM = TAU*(M/60)   - Math.PI/2;
+    //const thS = TAU*(S/60)   - Math.PI/2;
+    const thH = TAU*(H12/12)
+    const thM = TAU*(M/60)
+    const thS = TAU*(S/60)
 
     // world-unit values (what we print)
     const zH_u = mul(cis(thH), rH_u);
