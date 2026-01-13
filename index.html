@@ -1,303 +1,176 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>3b1b-ish Euler Clock on ℂ</title>
-  <style>
-    html, body { height:100%; margin:0; }
-    body{
-      display:grid;
-      place-items:center;
-      background:#0b0f14;
-      font-family: system-ui, -apple-system, "SF Pro Display","SF Pro Text","Apple SD Gothic Neo","Noto Sans KR", sans-serif;
-      color: rgba(255,255,255,.85);
-    }
-    .wrap{
-      width:min(860px, 96vw);
-      display:grid;
-      gap:12px;
-    }
-    .top{
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      gap:12px;
-    }
-    .title{
-      font-weight:700;
-      letter-spacing:-0.02em;
-      font-size:18px;
-    }
-    .sub{
-      font-size:12px;
-      opacity:.65;
-      line-height:1.3;
-      text-align:right;
-      white-space:nowrap;
-    }
-    canvas{
-      width:100%;
-      aspect-ratio: 1 / 1;
-      display:block;
-      border-radius:18px;
-      background:#0b0f14;
-      border:1px solid rgba(255,255,255,.10);
-      box-shadow: 0 20px 70px rgba(0,0,0,.45);
-    }
-    .bar{
-      display:flex;
-      gap:14px;
-      align-items:center;
-      justify-content:space-between;
-      font-size:12px;
-      opacity:.75;
-    }
-    .pill{
-      padding:10px 12px;
-      border:1px solid rgba(255,255,255,.10);
-      border-radius:14px;
-      background: rgba(255,255,255,.04);
-    }
-    .toggle{
-      display:flex; align-items:center; gap:10px;
-      user-select:none;
-    }
-    .toggle input{
-      appearance:none;
-      width:44px; height:26px;
-      border-radius:999px;
-      background: rgba(255,255,255,.10);
-      border:1px solid rgba(255,255,255,.12);
-      position:relative;
-      cursor:pointer;
-      outline:none;
-    }
-    .toggle input::after{
-      content:"";
-      position:absolute; top:3px; left:3px;
-      width:20px; height:20px;
-      border-radius:999px;
-      background: rgba(255,255,255,.85);
-      transition: .18s ease;
-      box-shadow: 0 8px 18px rgba(0,0,0,.35);
-    }
-    .toggle input:checked::after{ transform: translateX(18px); }
-    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-  </style>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>3b1b Euler Clock (H–M–S)</title>
+<style>
+html,body{margin:0;height:100%;background:#0b0f14;}
+body{
+  display:grid;
+  place-items:center;
+  font-family: system-ui,-apple-system,"SF Pro Text","Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  color:rgba(255,255,255,.85);
+}
+.wrap{width:min(900px,96vw);display:grid;gap:12px;}
+header{display:flex;justify-content:space-between;align-items:flex-end;}
+h1{font-size:18px;font-weight:700;margin:0;}
+.sub{font-size:12px;opacity:.6;text-align:right;line-height:1.3;}
+canvas{
+  width:100%;
+  aspect-ratio:1/1;
+  background:#0b0f14;
+  border-radius:18px;
+  border:1px solid rgba(255,255,255,.1);
+  box-shadow:0 20px 70px rgba(0,0,0,.45);
+}
+footer{
+  display:flex;justify-content:space-between;align-items:center;
+  font-size:12px;opacity:.75;
+}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+</style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="top">
-      <div class="title">Complex Clock · 3b1b-ish</div>
-      <div class="sub">복소평면에서  \(z_h=r_he^{i\theta_h}\),  \(z_m=z_h+r_me^{i\theta_m}\)<br/>“시침 끝에 분침” 링크 구조</div>
-    </div>
-
-    <canvas id="cv"></canvas>
-
-    <div class="bar">
-      <div class="pill mono">θ는 12시를 위로:  θ = 2π·t − π/2</div>
-      <label class="toggle">
-        <span>Trail</span>
-        <input id="trail" type="checkbox" checked />
-      </label>
-    </div>
+<div class="wrap">
+<header>
+  <h1>Euler Clock · ℂ</h1>
+  <div class="sub">
+    zₕ = rₕe^{iθₕ}<br/>
+    zₘ = zₕ + rₘe^{iθₘ}<br/>
+    zₛ = zₘ + rₛe^{iθₛ}
   </div>
+</header>
+
+<canvas id="cv"></canvas>
+
+<footer>
+  <div><code>12시 기준 −π/2, 복소평면 y↑</code></div>
+  <div>Hour → Minute → Second</div>
+</footer>
+</div>
 
 <script>
 (() => {
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
 
-  const trailEl = document.getElementById('trail');
-  let trailOn = trailEl.checked;
-  trailEl.addEventListener('change', () => (trailOn = trailEl.checked));
+  const TAU = Math.PI*2;
 
-  // 3b1b-ish palette (just a vibe, not exact)
-  const COL_BG   = '#0b0f14';
-  const COL_GRID = 'rgba(255,255,255,0.06)';
-  const COL_AXIS = 'rgba(255,255,255,0.18)';
-  const COL_TEXT = 'rgba(255,255,255,0.78)';
-  const COL_SUB  = 'rgba(255,255,255,0.55)';
-  const COL_HOUR = 'rgba(0, 196, 255, 0.92)';   // cyan
-  const COL_MIN  = 'rgba(255, 210, 70, 0.92)';  // warm yellow
-  const COL_JOINT= 'rgba(255,255,255,0.90)';
-  const COL_TRAIL= 'rgba(255,255,255,0.12)';
+  // 3b1b-ish colors
+  const C_BG='#0b0f14';
+  const C_GRID='rgba(255,255,255,.06)';
+  const C_AXIS='rgba(255,255,255,.18)';
+  const C_H='rgba(0,196,255,.95)';
+  const C_M='rgba(255,210,70,.95)';
+  const C_S='rgba(255,80,80,.95)';
+  const C_J='rgba(255,255,255,.9)';
+  const C_TRAIL='rgba(255,255,255,.12)';
 
-  // --- Complex helpers (Euler / cis) ---
-  const TAU = Math.PI * 2;
-  const cis = (th) => ({ x: Math.cos(th), y: Math.sin(th) });
-  const mul = (v, s) => ({ x: v.x * s, y: v.y * s });
-  const add = (a, b) => ({ x: a.x + b.x, y: a.y + b.y });
+  // complex helpers
+  const cis=t=>({x:Math.cos(t),y:Math.sin(t)});
+  const mul=(v,s)=>({x:v.x*s,y:v.y*s});
+  const add=(a,b)=>({x:a.x+b.x,y:a.y+b.y});
 
-  // --- DPR-safe resize (fix "업데이트 안됨" 류 이슈에 매우 강함) ---
-  let lastW = 0, lastH = 0, lastDpr = 0;
-  function ensureSize(){
-    const rect = cv.getBoundingClientRect();
-    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-
-    const w = Math.round(rect.width * dpr);
-    const h = Math.round(rect.height * dpr);
-
-    if (w !== lastW || h !== lastH || dpr !== lastDpr){
-      cv.width = w;
-      cv.height = h;
-      lastW = w; lastH = h; lastDpr = dpr;
+  let lw=0,lh=0,ld=0;
+  function resize(){
+    const r=cv.getBoundingClientRect();
+    const d=Math.min(3,window.devicePixelRatio||1);
+    if(r.width*d!==lw||r.height*d!==lh||d!==ld){
+      cv.width=r.width*d;
+      cv.height=r.height*d;
+      ctx.setTransform(d,0,0,d,0,0);
+      lw=r.width*d; lh=r.height*d; ld=d;
     }
-
-    // Work in CSS pixels:
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    return { W: rect.width, H: rect.height, dpr };
+    return {W:r.width,H:r.height};
   }
 
-  // world -> screen (complex plane: y up)
-  function toScreen(z, O){
-    return { x: O.x + z.x, y: O.y - z.y };
-  }
+  const toScreen=(z,O)=>({x:O.x+z.x,y:O.y-z.y});
 
-  function clear(W, H){
-    if (trailOn){
-      // fade instead of clear
-      ctx.fillStyle = 'rgba(11,15,20,0.14)'; // matches bg
-      ctx.fillRect(0, 0, W, H);
-    } else {
-      ctx.fillStyle = COL_BG;
-      ctx.fillRect(0, 0, W, H);
-    }
-  }
-
-  function line(a, b, w, color){
+  function grid(O,scale,W,H){
+    ctx.strokeStyle=C_GRID;
+    ctx.lineWidth=1;
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
-    ctx.lineWidth = w;
-    ctx.strokeStyle = color;
-    ctx.lineCap = 'round';
+    for(let x=O.x%scale;x<W;x+=scale){ctx.moveTo(x,0);ctx.lineTo(x,H);}
+    for(let y=O.y%scale;y<H;y+=scale){ctx.moveTo(0,y);ctx.lineTo(W,y);}
+    ctx.stroke();
+    ctx.strokeStyle=C_AXIS;
+    ctx.beginPath();
+    ctx.moveTo(0,O.y);ctx.lineTo(W,O.y);
+    ctx.moveTo(O.x,0);ctx.lineTo(O.x,H);
     ctx.stroke();
   }
 
-  function dot(p, r, fill){
+  function line(a,b,w,c){
     ctx.beginPath();
-    ctx.arc(p.x, p.y, r, 0, TAU);
-    ctx.fillStyle = fill;
-    ctx.fill();
-  }
-
-  function text(str, x, y, color=COL_TEXT, size=12, align='left'){
-    ctx.fillStyle = color;
-    ctx.font = `${size}px system-ui, -apple-system, "SF Pro Text", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif`;
-    ctx.textAlign = align;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(str, x, y);
-  }
-
-  // Draw complex plane grid + axes
-  function drawPlane(O, scale, W, H){
-    // grid spacing in pixels
-    const step = scale; // 1 unit
-    ctx.lineWidth = 1;
-
-    // grid
-    ctx.strokeStyle = COL_GRID;
-    ctx.beginPath();
-    for (let x = O.x % step; x <= W; x += step){
-      ctx.moveTo(x, 0); ctx.lineTo(x, H);
-    }
-    for (let y = O.y % step; y <= H; y += step){
-      ctx.moveTo(0, y); ctx.lineTo(W, y);
-    }
+    ctx.moveTo(a.x,a.y);ctx.lineTo(b.x,b.y);
+    ctx.lineWidth=w;ctx.strokeStyle=c;ctx.lineCap='round';
     ctx.stroke();
-
-    // axes
-    ctx.strokeStyle = COL_AXIS;
+  }
+  function dot(p,r,c){
     ctx.beginPath();
-    ctx.moveTo(0, O.y); ctx.lineTo(W, O.y); // Re axis
-    ctx.moveTo(O.x, 0); ctx.lineTo(O.x, H); // Im axis
-    ctx.stroke();
-
-    // labels
-    text('Re', W - 18, O.y - 14, COL_SUB, 12, 'right');
-    text('Im', O.x + 18, 18,       COL_SUB, 12, 'left');
-    dot(O, 3, COL_AXIS);
+    ctx.arc(p.x,p.y,r,0,TAU);
+    ctx.fillStyle=c;ctx.fill();
   }
 
-  // --- Trail for minute endpoint ---
-  const trail = [];
-  const TRAIL_MAX = 220;
+  const trail=[];
+  const TRAIL_MAX=240;
 
-  function frame(){
-    const { W, H } = ensureSize();
-    const O = { x: W/2, y: H/2 };
+  function draw(){
+    const {W,H}=resize();
+    const O={x:W/2,y:H/2};
+    const scale=Math.min(W,H)*0.085;
 
-    // scale: 1 complex unit = pixels
-    const scale = Math.min(W, H) * 0.085;
+    ctx.fillStyle='rgba(11,15,20,.18)';
+    ctx.fillRect(0,0,W,H);
 
-    clear(W, H);
-    drawPlane(O, scale, W, H);
+    grid(O,scale,W,H);
 
-    // time
-    const now = new Date();
-    const ms = now.getMilliseconds();
-    const sec = now.getSeconds() + ms/1000;
-    const min = now.getMinutes() + sec/60;
-    const hour = (now.getHours()%12) + min/60;
+    const now=new Date();
+    const ms=now.getMilliseconds();
+    const s=now.getSeconds()+ms/1000;
+    const m=now.getMinutes()+s/60;
+    const h=(now.getHours()%12)+m/60;
 
-    // angles (12시 위가 -π/2)
-    const thM = TAU*(min/60) - Math.PI/2;
-    const thH = TAU*(hour/12) - Math.PI/2;
+    const thS=TAU*(s/60)-Math.PI/2;
+    const thM=TAU*(m/60)-Math.PI/2;
+    const thH=TAU*(h/12)-Math.PI/2;
 
-    // lengths in complex units (then *scale)
-    const rH = 3.2;   // hour length
-    const rM = 4.3;   // minute length
+    const rH=3.0*scale;
+    const rM=4.2*scale;
+    const rS=5.4*scale;
 
-    // complex vectors (world coords)
-    const zH = mul(cis(thH), rH * scale);
-    const zM = add(zH, mul(cis(thM), rM * scale));
+    const zH=mul(cis(thH),rH);
+    const zM=add(zH,mul(cis(thM),rM));
+    const zS=add(zM,mul(cis(thS),rS));
 
-    // screen points
-    const P0 = toScreen({x:0,y:0}, O);
-    const PH = toScreen(zH, O);
-    const PM = toScreen(zM, O);
+    const P0=toScreen({x:0,y:0},O);
+    const PH=toScreen(zH,O);
+    const PM=toScreen(zM,O);
+    const PS=toScreen(zS,O);
 
-    // trail
-    trail.push(PM);
-    if (trail.length > TRAIL_MAX) trail.shift();
+    trail.push(PS);
+    if(trail.length>TRAIL_MAX) trail.shift();
 
-    if (trailOn){
-      ctx.beginPath();
-      for(let i=0;i<trail.length;i++){
-        const p = trail[i];
-        if(i===0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = COL_TRAIL;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-    }
+    ctx.beginPath();
+    trail.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
+    ctx.lineWidth=2;ctx.strokeStyle=C_TRAIL;ctx.stroke();
 
-    // vectors
-    line(P0, PH, 7, COL_HOUR);
-    line(PH, PM, 5, COL_MIN);
+    line(P0,PH,7,C_H);
+    line(PH,PM,5,C_M);
+    line(PM,PS,3,C_S);
 
-    // joints
-    dot(P0, 6, COL_JOINT);
-    dot(PH, 5, COL_JOINT);
-    dot(PM, 4, COL_JOINT);
+    dot(P0,6,C_J);
+    dot(PH,5,C_J);
+    dot(PM,4,C_J);
+    dot(PS,3,C_J);
 
-    // annotations (tiny, 3b1b style)
-    text('zₕ', PH.x + 10, PH.y, COL_HOUR, 12, 'left');
-    text('zₘ', PM.x + 10, PM.y, COL_MIN, 12, 'left');
-
-    requestAnimationFrame(frame);
+    requestAnimationFrame(draw);
   }
 
-  // first paint background (avoids blank flash)
-  ctx.fillStyle = COL_BG;
+  ctx.fillStyle=C_BG;
   ctx.fillRect(0,0,cv.width,cv.height);
-
-  requestAnimationFrame(frame);
+  requestAnimationFrame(draw);
 })();
 </script>
 </body>
