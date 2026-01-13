@@ -1,39 +1,146 @@
 <!doctype html>
-<!doctype html>
 <html lang="ko">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Euler Clock Auto-Fit</title>
+<title>Euler Clock · ℂ (24h + Values)</title>
+
+<!-- KaTeX font (TeX 느낌 폰트). 인터넷 연결 필요 -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"/>
+
 <style>
-  html,body{height:100%;margin:0;background:#0b0f14;}
-  body{display:grid;place-items:center;font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:rgba(255,255,255,.85);}
+  :root{
+    --bg:#0b0f14;
+    --grid: rgba(255,255,255,.06);
+    --axis: rgba(255,255,255,.18);
+    --text: rgba(255,255,255,.85);
+    --sub: rgba(255,255,255,.60);
+    --card: rgba(255,255,255,.04);
+    --border: rgba(255,255,255,.10);
+    --shadow: rgba(0,0,0,.45);
+  }
+
+  html,body{height:100%;margin:0;background:var(--bg);}
+  body{
+    display:grid;place-items:center;
+    font-family: system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    color:var(--text);
+  }
+
   .wrap{width:min(920px,96vw);display:grid;gap:12px;}
-  header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
-  .t{font-weight:700;letter-spacing:-.02em}
-  .s{font-size:12px;opacity:.6;text-align:right;line-height:1.3;white-space:nowrap}
-  canvas{width:100%;aspect-ratio:1/1;display:block;border-radius:18px;background:#0b0f14;border:1px solid rgba(255,255,255,.1);box-shadow:0 20px 70px rgba(0,0,0,.45)}
-  footer{display:flex;justify-content:space-between;align-items:center;font-size:12px;opacity:.75}
-  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  .panel{
+    border:1px solid var(--border);
+    border-radius:18px;
+    background: var(--bg);
+    box-shadow: 0 20px 70px var(--shadow);
+    overflow:hidden;
+  }
+
+  /* 시간(복소평면 위) */
+  .timebar{
+    padding: 14px 16px 10px 16px;
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    border-bottom:1px solid var(--border);
+    background: linear-gradient(to bottom, rgba(255,255,255,.03), rgba(255,255,255,0));
+  }
+  .time{
+    font-family: KaTeX_Main, "Latin Modern Math", "Times New Roman", serif;
+    font-size: 34px;
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+  .hint{
+    font-size:12px;
+    color:var(--sub);
+    text-align:right;
+    line-height:1.3;
+    white-space:nowrap;
+  }
+
+  canvas{
+    width:100%;
+    aspect-ratio:1/1;
+    display:block;
+    background: var(--bg);
+  }
+
+  /* 값(복소평면 아래) */
+  .vals{
+    padding: 12px 16px 16px 16px;
+    border-top:1px solid var(--border);
+    background: rgba(255,255,255,.02);
+    display:grid;
+    gap:8px;
+  }
+  .row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background: var(--card);
+  }
+  .lhs{
+    font-family: KaTeX_Main, "Latin Modern Math", serif;
+    font-size: 16px;
+    color: var(--sub);
+    white-space:nowrap;
+  }
+  .rhs{
+    font-family: KaTeX_Main, "Latin Modern Math", serif;
+    font-size: 16px;
+    color: var(--text);
+    text-align:right;
+    white-space:nowrap;
+  }
+
+  .legend{
+    display:flex; gap:10px; align-items:center;
+    font-size:12px; color:var(--sub);
+    padding: 10px 2px 0 2px;
+  }
+  .dot{width:10px;height:10px;border-radius:999px;display:inline-block;}
 </style>
 </head>
+
 <body>
 <div class="wrap">
-  <header>
-    <div class="t">Complex Plane · Euler Clock (Auto-Fit)</div>
-    <div class="s">
-      zₕ = rₕe^{iθₕ}<br>
-      zₘ = zₕ + rₘe^{iθₘ}<br>
-      zₛ = zₘ + rₛe^{iθₛ}
+  <div class="panel">
+    <div class="timebar">
+      <div id="time" class="time">00:00:00</div>
+      <div class="hint">
+        zₕ = rₕe^{iθₕ}<br>
+        zₘ = zₕ + rₘe^{iθₘ}<br>
+        zₛ = zₘ + rₛe^{iθₛ}
+      </div>
     </div>
-  </header>
 
-  <canvas id="cv"></canvas>
+    <canvas id="cv"></canvas>
 
-  <footer>
-    <div><code>scale = (canvasRadius - margin)/(rₕ+rₘ+rₛ)</code></div>
-    <div>All endpoints stay on-screen ✅</div>
-  </footer>
+    <div class="vals">
+      <div class="legend">
+        <span class="dot" style="background:rgba(0,196,255,.95)"></span><span>hour</span>
+        <span class="dot" style="background:rgba(255,210,70,.95)"></span><span>minute</span>
+        <span class="dot" style="background:rgba(255,80,80,.95)"></span><span>second</span>
+      </div>
+
+      <div class="row">
+        <div class="lhs">z_h</div>
+        <div id="zh" class="rhs">0 + 0i</div>
+      </div>
+      <div class="row">
+        <div class="lhs">z_m</div>
+        <div id="zm" class="rhs">0 + 0i</div>
+      </div>
+      <div class="row">
+        <div class="lhs">z_s</div>
+        <div id="zs" class="rhs">0 + 0i</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -41,25 +148,27 @@
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
 
+  const elTime = document.getElementById('time');
+  const elZH = document.getElementById('zh');
+  const elZM = document.getElementById('zm');
+  const elZS = document.getElementById('zs');
+
   const TAU = Math.PI * 2;
 
-  // 3b1b-ish palette
+  // colors
   const C_BG   = '#0b0f14';
   const C_GRID = 'rgba(255,255,255,.06)';
   const C_AXIS = 'rgba(255,255,255,.18)';
-  const C_H    = 'rgba(0,196,255,.95)';     // hour
-  const C_M    = 'rgba(255,210,70,.95)';    // minute
-  const C_S    = 'rgba(255,80,80,.95)';     // second
-  const C_J    = 'rgba(255,255,255,.90)';   // joints
+  const C_H    = 'rgba(0,196,255,.95)';
+  const C_M    = 'rgba(255,210,70,.95)';
+  const C_S    = 'rgba(255,80,80,.95)';
+  const C_J    = 'rgba(255,255,255,.90)';
   const C_TRAIL= 'rgba(255,255,255,.12)';
 
-  // ===== lengths in "world units" (not pixels)
-  // 여기 숫자만 바꾸면 전체가 자동으로 화면에 맞춰짐.
+  // ===== Lengths in world-units (auto-fit will scale to pixels)
   const rH_u = 3.0;
   const rM_u = 4.2;
   const rS_u = 5.4;
-
-  // end-point guarantee: max reach
   const RMAX_u = rH_u + rM_u + rS_u;
 
   // complex helpers
@@ -78,32 +187,18 @@
       cv.width = w; cv.height = h;
       lw=w; lh=h; ld=d;
     }
-    // work in CSS px
-    ctx.setTransform(d,0,0,d,0,0);
+    ctx.setTransform(d,0,0,d,0,0); // draw in CSS px
     return { W:r.width, H:r.height };
   }
 
   const toScreen = (z,O) => ({ x: O.x + z.x, y: O.y - z.y });
 
-  function line(a,b,w,c){
-    ctx.beginPath();
-    ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
-    ctx.lineWidth = w; ctx.strokeStyle = c; ctx.lineCap='round';
-    ctx.stroke();
-  }
-  function dot(p,r,c){
-    ctx.beginPath();
-    ctx.arc(p.x,p.y,r,0,TAU);
-    ctx.fillStyle=c; ctx.fill();
-  }
-
   function drawPlane(O, unitPx, W, H){
-    // unitPx = 1 world unit in pixels
-    const step = unitPx;
+    const step = unitPx; // 1 unit
+    ctx.lineWidth = 1;
 
     // grid
     ctx.strokeStyle = C_GRID;
-    ctx.lineWidth = 1;
     ctx.beginPath();
     for(let x = O.x % step; x <= W; x += step){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
     for(let y = O.y % step; y <= H; y += step){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
@@ -117,49 +212,90 @@
     ctx.stroke();
   }
 
-  // trail for the final endpoint (PS)
+  function line(a,b,w,c){
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+    ctx.lineWidth = w;
+    ctx.strokeStyle = c;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+  function dot(p,r,c){
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,r,0,TAU);
+    ctx.fillStyle = c;
+    ctx.fill();
+  }
+
+  // final endpoint trail
   const trail=[];
-  const TRAIL_MAX = 240;
+  const TRAIL_MAX=240;
+
+  function pad2(n){ return String(n).padStart(2,'0'); }
+
+  // format a + bi
+  function fmtComplex(z){
+    const a = z.x;
+    const b = z.y;
+    const aStr = (Math.round(a*1000)/1000).toFixed(3);
+    const bAbs = Math.abs(b);
+    const bStr = (Math.round(bAbs*1000)/1000).toFixed(3);
+    const sign = (b >= 0) ? " + " : " - ";
+    return `${aStr}${sign}${bStr}i`;
+  }
 
   function frame(){
     const { W, H } = resize();
     const O = { x: W/2, y: H/2 };
 
-    // ===== AUTO-FIT SCALE (핵심)
-    const margin = Math.min(W,H) * 0.08;                 // 가장자리 여백
-    const R_canvas = Math.min(W,H)/2 - margin;           // 캔버스에서 쓸 수 있는 반경
-    const unitPx = R_canvas / RMAX_u;                    // 1 world unit -> pixels
+    // ===== AUTO-FIT so all endpoints stay on-screen
+    const margin = Math.min(W,H) * 0.09;
+    const R_canvas = Math.min(W,H)/2 - margin;
+    const unitPx = R_canvas / RMAX_u;
 
-    // fade background (trail)
+    // fade bg for trail
     ctx.fillStyle = 'rgba(11,15,20,.18)';
     ctx.fillRect(0,0,W,H);
 
-    // plane
     drawPlane(O, unitPx, W, H);
 
-    // time
     const now = new Date();
     const ms = now.getMilliseconds();
+
+    // 24-hour label
+    const HH = pad2(now.getHours());
+    const MM = pad2(now.getMinutes());
+    const SS = pad2(now.getSeconds());
+    elTime.textContent = `${HH}:${MM}:${SS}`;
+
+    // time for angles (smooth)
     const s  = now.getSeconds() + ms/1000;
     const m  = now.getMinutes() + s/60;
-    const h  = (now.getHours()%12) + m/60;
+    const h12 = (now.getHours()%12) + m/60;
 
-    // angles (12 o'clock up)
-    const thS = TAU*(s/60) - Math.PI/2;
-    const thM = TAU*(m/60) - Math.PI/2;
-    const thH = TAU*(h/12) - Math.PI/2;
+    const thS = TAU*(s/60)  - Math.PI/2;
+    const thM = TAU*(m/60)  - Math.PI/2;
+    const thH = TAU*(h12/12)- Math.PI/2;
 
-    // vectors in pixels (world unit * unitPx)
-    const zH = mul(cis(thH), rH_u * unitPx);
-    const zM = add(zH, mul(cis(thM), rM_u * unitPx));
-    const zS = add(zM, mul(cis(thS), rS_u * unitPx));
+    // world-unit complex values (this is what we display)
+    const zH_u = mul(cis(thH), rH_u);
+    const zM_u = add(zH_u, mul(cis(thM), rM_u));
+    const zS_u = add(zM_u, mul(cis(thS), rS_u));
+
+    elZH.textContent = fmtComplex(zH_u);
+    elZM.textContent = fmtComplex(zM_u);
+    elZS.textContent = fmtComplex(zS_u);
+
+    // same vectors, but in pixels for drawing
+    const zH = mul(zH_u, unitPx);
+    const zM = mul(zM_u, unitPx);
+    const zS = mul(zS_u, unitPx);
 
     const P0 = toScreen({x:0,y:0}, O);
     const PH = toScreen(zH, O);
     const PM = toScreen(zM, O);
     const PS = toScreen(zS, O);
 
-    // trail
     trail.push(PS);
     if(trail.length > TRAIL_MAX) trail.shift();
     ctx.beginPath();
@@ -169,12 +305,10 @@
     ctx.lineCap='round';
     ctx.stroke();
 
-    // arms
     line(P0, PH, 7, C_H);
     line(PH, PM, 5, C_M);
     line(PM, PS, 3, C_S);
 
-    // joints
     dot(P0, 6, C_J);
     dot(PH, 5, C_J);
     dot(PM, 4, C_J);
