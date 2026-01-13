@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Euler Clock · ℂ (24h + Values)</title>
 
-<!-- KaTeX font (TeX 느낌 폰트). 인터넷 연결 필요 -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"/>
 
 <style>
@@ -19,16 +18,13 @@
     --border: rgba(255,255,255,.10);
     --shadow: rgba(0,0,0,.45);
   }
-
   html,body{height:100%;margin:0;background:var(--bg);}
   body{
     display:grid;place-items:center;
     font-family: system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
     color:var(--text);
   }
-
   .wrap{width:min(920px,96vw);display:grid;gap:12px;}
-
   .panel{
     border:1px solid var(--border);
     border-radius:18px;
@@ -36,8 +32,6 @@
     box-shadow: 0 20px 70px var(--shadow);
     overflow:hidden;
   }
-
-  /* 시간(복소평면 위) */
   .timebar{
     padding: 14px 16px 10px 16px;
     display:flex;align-items:baseline;justify-content:space-between;gap:12px;
@@ -57,15 +51,12 @@
     line-height:1.3;
     white-space:nowrap;
   }
-
   canvas{
     width:100%;
     aspect-ratio:1/1;
     display:block;
     background: var(--bg);
   }
-
-  /* 값(복소평면 아래) */
   .vals{
     padding: 12px 16px 16px 16px;
     border-top:1px solid var(--border);
@@ -83,26 +74,13 @@
     border-radius:14px;
     background: var(--card);
   }
-  .lhs{
+  .lhs,.rhs{
     font-family: KaTeX_Main, "Latin Modern Math", serif;
     font-size: 16px;
-    color: var(--sub);
     white-space:nowrap;
   }
-  .rhs{
-    font-family: KaTeX_Main, "Latin Modern Math", serif;
-    font-size: 16px;
-    color: var(--text);
-    text-align:right;
-    white-space:nowrap;
-  }
-
-  .legend{
-    display:flex; gap:10px; align-items:center;
-    font-size:12px; color:var(--sub);
-    padding: 10px 2px 0 2px;
-  }
-  .dot{width:10px;height:10px;border-radius:999px;display:inline-block;}
+  .lhs{color:var(--sub);}
+  .rhs{color:var(--text);text-align:right;}
 </style>
 </head>
 
@@ -112,21 +90,15 @@
     <div class="timebar">
       <div id="time" class="time">00:00:00</div>
       <div class="hint">
-        zₕ = rₕe^{iθₕ}<br>
-        zₘ = zₕ + rₘe^{iθₘ}<br>
-        zₛ = zₘ + rₛe^{iθₛ}
+        θ_h = 2π·(H/12) − π/2<br>
+        θ_m = 2π·(M/60) − π/2<br>
+        θ_s = 2π·(S/60) − π/2
       </div>
     </div>
 
     <canvas id="cv"></canvas>
 
     <div class="vals">
-      <div class="legend">
-        <span class="dot" style="background:rgba(0,196,255,.95)"></span><span>hour</span>
-        <span class="dot" style="background:rgba(255,210,70,.95)"></span><span>minute</span>
-        <span class="dot" style="background:rgba(255,80,80,.95)"></span><span>second</span>
-      </div>
-
       <div class="row">
         <div class="lhs">z_h</div>
         <div id="zh" class="rhs">0 + 0i</div>
@@ -163,9 +135,8 @@
   const C_M    = 'rgba(255,210,70,.95)';
   const C_S    = 'rgba(255,80,80,.95)';
   const C_J    = 'rgba(255,255,255,.90)';
-  const C_TRAIL= 'rgba(255,255,255,.12)';
 
-  // ===== Lengths in world-units (auto-fit will scale to pixels)
+  // lengths in world units (auto-fit)
   const rH_u = 3.0;
   const rM_u = 4.2;
   const rS_u = 5.4;
@@ -176,7 +147,7 @@
   const mul = (v,s) => ({ x: v.x*s, y: v.y*s });
   const add = (a,b) => ({ x: a.x+b.x, y: a.y+b.y });
 
-  // DPR-safe resize
+  // DPR resize
   let lw=0, lh=0, ld=0;
   function resize(){
     const r = cv.getBoundingClientRect();
@@ -187,24 +158,23 @@
       cv.width = w; cv.height = h;
       lw=w; lh=h; ld=d;
     }
-    ctx.setTransform(d,0,0,d,0,0); // draw in CSS px
+    ctx.setTransform(d,0,0,d,0,0);
     return { W:r.width, H:r.height };
   }
 
+  // complex plane y up -> screen y down
   const toScreen = (z,O) => ({ x: O.x + z.x, y: O.y - z.y });
 
   function drawPlane(O, unitPx, W, H){
-    const step = unitPx; // 1 unit
+    const step = unitPx;
     ctx.lineWidth = 1;
 
-    // grid
     ctx.strokeStyle = C_GRID;
     ctx.beginPath();
     for(let x = O.x % step; x <= W; x += step){ ctx.moveTo(x,0); ctx.lineTo(x,H); }
     for(let y = O.y % step; y <= H; y += step){ ctx.moveTo(0,y); ctx.lineTo(W,y); }
     ctx.stroke();
 
-    // axes
     ctx.strokeStyle = C_AXIS;
     ctx.beginPath();
     ctx.moveTo(0,O.y); ctx.lineTo(W,O.y);
@@ -227,19 +197,14 @@
     ctx.fill();
   }
 
-  // final endpoint trail
-  const trail=[];
-  const TRAIL_MAX=240;
-
   function pad2(n){ return String(n).padStart(2,'0'); }
 
-  // format a + bi
+  // a + bi
   function fmtComplex(z){
-    const a = z.x;
-    const b = z.y;
-    const aStr = (Math.round(a*1000)/1000).toFixed(3);
-    const bAbs = Math.abs(b);
-    const bStr = (Math.round(bAbs*1000)/1000).toFixed(3);
+    const a = Math.round(z.x*1000)/1000;
+    const b = Math.round(z.y*1000)/1000;
+    const aStr = a.toFixed(3);
+    const bStr = Math.abs(b).toFixed(3);
     const sign = (b >= 0) ? " + " : " - ";
     return `${aStr}${sign}${bStr}i`;
   }
@@ -248,36 +213,35 @@
     const { W, H } = resize();
     const O = { x: W/2, y: H/2 };
 
-    // ===== AUTO-FIT so all endpoints stay on-screen
+    // auto-fit so every endpoint stays on screen
     const margin = Math.min(W,H) * 0.09;
     const R_canvas = Math.min(W,H)/2 - margin;
     const unitPx = R_canvas / RMAX_u;
 
-    // fade bg for trail
-    ctx.fillStyle = 'rgba(11,15,20,.18)';
+    // clear (no trail)
+    ctx.fillStyle = C_BG;
     ctx.fillRect(0,0,W,H);
 
     drawPlane(O, unitPx, W, H);
 
     const now = new Date();
-    const ms = now.getMilliseconds();
 
-    // 24-hour label
+    // 24h display
     const HH = pad2(now.getHours());
     const MM = pad2(now.getMinutes());
     const SS = pad2(now.getSeconds());
     elTime.textContent = `${HH}:${MM}:${SS}`;
 
-    // time for angles (smooth)
-    const s  = now.getSeconds() + ms/1000;
-    const m  = now.getMinutes() + s/60;
-    const h12 = (now.getHours()%12) + m/60;
+    // ===== YOUR RULE: theta from current values only
+    const H12 = now.getHours() % 12;     // 0..11
+    const M   = now.getMinutes();        // 0..59
+    const S   = now.getSeconds();        // 0..59
 
-    const thS = TAU*(s/60)  - Math.PI/2;
-    const thM = TAU*(m/60)  - Math.PI/2;
-    const thH = TAU*(h12/12)- Math.PI/2;
+    const thH = TAU*(H12/12) - Math.PI/2;
+    const thM = TAU*(M/60)   - Math.PI/2;
+    const thS = TAU*(S/60)   - Math.PI/2;
 
-    // world-unit complex values (this is what we display)
+    // world-unit values (what we print)
     const zH_u = mul(cis(thH), rH_u);
     const zM_u = add(zH_u, mul(cis(thM), rM_u));
     const zS_u = add(zM_u, mul(cis(thS), rS_u));
@@ -286,7 +250,7 @@
     elZM.textContent = fmtComplex(zM_u);
     elZS.textContent = fmtComplex(zS_u);
 
-    // same vectors, but in pixels for drawing
+    // pixel vectors
     const zH = mul(zH_u, unitPx);
     const zM = mul(zM_u, unitPx);
     const zS = mul(zS_u, unitPx);
@@ -295,15 +259,6 @@
     const PH = toScreen(zH, O);
     const PM = toScreen(zM, O);
     const PS = toScreen(zS, O);
-
-    trail.push(PS);
-    if(trail.length > TRAIL_MAX) trail.shift();
-    ctx.beginPath();
-    trail.forEach((p,i)=> i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = C_TRAIL;
-    ctx.lineCap='round';
-    ctx.stroke();
 
     line(P0, PH, 7, C_H);
     line(PH, PM, 5, C_M);
@@ -314,6 +269,7 @@
     dot(PM, 4, C_J);
     dot(PS, 3, C_J);
 
+    // update roughly at display rate; time changes per second anyway
     requestAnimationFrame(frame);
   }
 
